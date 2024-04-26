@@ -212,6 +212,9 @@ jobs:
             runner: macos-14
           - platform: windows-intel
             runner: windows-latest
+        exclude:
+          - platform: macos-arm
+            node: 14
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
