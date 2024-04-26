@@ -84,7 +84,7 @@ jobs:
         run: ldd --version
 
       - name: Install gcc-aarch64-linux-gnu
-        if: (steps.cached-artifact.outputs.cache-hit != 'true') && (matrix.target == 'aarch64-unknown-linux-gnu')
+        if: (steps.cached-artifact.outputs.cache-hit != 'true') && (matrix.platform == 'linux-arm')
         run: sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
 
       - name: Rust Cargo and Build cache
@@ -105,10 +105,10 @@ jobs:
           RUSTFLAGS: ${{ matrix.rustflags }}
         run: |
           cargo build --release --target ${{ matrix.target }}
-          find ./target/${{ matrix.target }}/ -ls
+          # find ./target/${{ matrix.target }}/ -ls
           mkdir -p ./releases/${{ matrix.target }}
           for i in ./target/${{ matrix.target }}/release/{libtemporal_sdk_typescript_bridge.{dylib,so},temporal_sdk_typescript_bridge.dll} ; do
-            ls [[ -x $i ]] && -l  matrix.target }}
+            # ls [[ -x $i ]] -l  ${{ matrix.target }}
             cp -a $i  ./releases/${{ matrix.target }}/index.node || true
           done
 
@@ -161,6 +161,7 @@ jobs:
           key: npm-main-${{ hashFiles('./package-lock.json') }}
           restore-keys: |
             npm-main-
+          enableCrossOsArchive: true
 
       - name: Download dependencies
         # Make up to 3 attempts to install NPM dependencies, to work around transient NPM errors
@@ -186,6 +187,7 @@ jobs:
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: npm-main-${{ hashFiles('./package-lock.json') }}
+          enableCrossOsArchive: true
 
   # Run integration tests. Uses the native binaries built in compile-native-binaries,
   # but build `@temporalio/*` packages locally.
@@ -245,6 +247,7 @@ jobs:
           key: npm-main-${{ hashFiles('./package-lock.json') }}
           restore-keys: |
             npm-main-
+          enableCrossOsArchive: true
 
       - name: Download dependencies
         # Make up to 3 attempts to install NPM dependencies, to work around transient NPM errors
@@ -296,21 +299,18 @@ jobs:
           # Disable non-mtls tests on cloud
           - sample: hello-world
             server: cloud
-
           # Disable mtls tests on cli
           - sample: hello-world-mtls
             server: cli
-
           - sample: fetch-esm
             server: cloud
-
           # FIXME: investigate why 'fetch-esm' always hangs on Windows
           - sample: fetch-esm
             platform: windows-intel
-
+          - platform: macos-arm
+            node: 14
           # FIXME: Disable 'cloud' if 'TEMPORAL_CLIENT_CERT' isn't set
           # - server: "${{ env.TEMPORAL_CLIENT_CERT == '' && 'cloud' || 'ignore' }}"
-
         include:
           - platform: linux-intel
             runner: ubuntu-latest
@@ -353,6 +353,7 @@ jobs:
           key: npm-main-${{ hashFiles('./package-lock.json') }}
           restore-keys: |
             npm-main-
+          enableCrossOsArchive: true
         if: ${{ matrix.server != 'cloud' || env.TEMPORAL_CLIENT_CERT != '' }}
 
       # No need to compile anything, we just need the package ./scripts and their dependencies
@@ -368,10 +369,10 @@ jobs:
           path: ./tmp/registry/storage
         if: ${{ matrix.server != 'cloud' || env.TEMPORAL_CLIENT_CERT != '' }}
 
-      - run: find . -ls
-        shell: bash
-        working-directory: ./tmp/registry/storage
-        if: ${{ matrix.server != 'cloud' || env.TEMPORAL_CLIENT_CERT != '' }}
+      # - run: find . -ls
+      #   shell: bash
+      #   working-directory: ./tmp/registry/storage
+      #   if: ${{ matrix.server != 'cloud' || env.TEMPORAL_CLIENT_CERT != '' }}
 
       # Note: here, `npx create` fails on windows if shell is bash.
       - name: Instantiate sample project using verdaccio artifacts
@@ -480,9 +481,10 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: npm-main-${{ hashFiles('./package-lock.json') }}
           restore-keys: |
             npm-main-
+          key: npm-main-${{ hashFiles('./package-lock.json') }}
+          enableCrossOsArchive: true
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -500,7 +502,7 @@ jobs:
         with:
           workspaces: packages/core-bridge -> target
           prefix-key: corebridge-buildcache
-          shared-key: ${{ matrix.target }}
+          shared-key: ${{ matrix.platform }}
           env-vars: ''
           save-if: false
 
@@ -540,6 +542,7 @@ jobs:
           key: npm-main-${{ hashFiles('./package-lock.json') }}
           restore-keys: |
             npm-main-
+          enableCrossOsArchive: true
 
       # Don't build during install phase since we're going to explicitly build
       - name: Download dependencies
