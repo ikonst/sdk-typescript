@@ -71,7 +71,8 @@ jobs:
 
       - name: Install protoc
         if: steps.cached-artifact.outputs.cache-hit != 'true'
-        uses: arduino/setup-protoc@v3
+        # arduino/setup-protoc@v3 require Node 20, which doesn't work on Ubuntu 18.04 runners
+        uses: arduino/setup-protoc@v2
         with:
           # TODO: Upgrade proto once https://github.com/arduino/setup-protoc/issues/99 is fixed
           version: '23.x'
