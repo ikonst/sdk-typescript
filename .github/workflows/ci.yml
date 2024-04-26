@@ -33,8 +33,9 @@ jobs:
             runner: buildjet-2vcpu-ubuntu-1804
             target: x86_64-unknown-linux-gnu
           - platform: linux-arm
-            runner: buildjet-2vcpu-ubuntu-1804-arm
+            runner: buildjet-2vcpu-ubuntu-1804
             target: aarch64-unknown-linux-gnu
+            rustflags: '-C linker=aarch64-linux-gnu-gcc'
           - platform: macos-intel
             runner: macos-12
             target: x86_64-apple-darwin
@@ -82,9 +83,9 @@ jobs:
         if: (steps.cached-artifact.outputs.cache-hit != 'true') && startsWith(matrix.platform, 'linux')
         run: ldd --version
 
-      # - name: Install gcc-aarch64-linux-gnu
-      #   if: (steps.cached-artifact.outputs.cache-hit != 'true') && (matrix.target == 'aarch64-unknown-linux-gnu')
-      #   run: sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
+      - name: Install gcc-aarch64-linux-gnu
+        if: (steps.cached-artifact.outputs.cache-hit != 'true') && (matrix.target == 'aarch64-unknown-linux-gnu')
+        run: sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
 
       - name: Rust Cargo and Build cache
         if: steps.cached-artifact.outputs.cache-hit != 'true'
@@ -100,6 +101,8 @@ jobs:
       - name: Compile rust code
         if: steps.cached-artifact.outputs.cache-hit != 'true'
         working-directory: ./packages/core-bridge
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
         run: |
           cargo build --release --target ${{ matrix.target }}
           find ./target/${{ matrix.target }}/ -ls
