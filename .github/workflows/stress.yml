@@ -131,13 +131,13 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: worker-logs
+          name: worker-logs-${{ inputs.reuse-v8-context && 'reuse-v8' || 'no-reuse-v8' }}
           path: ${{ env.TEMPORAL_TESTING_LOG_DIR }}/tails
 
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: worker-mem-logs
+          name: worker-mem-logs-${{ inputs.reuse-v8-context && 'reuse-v8' || 'no-reuse-v8' }}
           path: ${{ env.TEMPORAL_TESTING_MEM_LOG_DIR }}
 
       # TODO: set up alerting
