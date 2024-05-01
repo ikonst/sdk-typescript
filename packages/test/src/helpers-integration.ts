@@ -57,10 +57,6 @@ export function makeTestFunction(opts: {
     const env = await TestWorkflowEnvironment.createLocal({
       ...opts.workflowEnvironmentOpts,
       server: {
-        executable: {
-          type: 'cached-download',
-          version: 'v0.12.0',
-        },
         ...opts.workflowEnvironmentOpts?.server,
         extraArgs: [
           ...defaultDynamicConfigOptions.flatMap((opt) => ['--dynamic-config-value', opt]),

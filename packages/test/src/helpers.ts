@@ -154,7 +154,16 @@ export class TestWorkflowEnvironment extends RealTestWorkflowEnvironment {
     return RealTestWorkflowEnvironment.createLocal({
       ...opts,
       ...(TESTS_CLI_VERSION
-        ? { server: { executable: { type: 'cached-download', version: TESTS_CLI_VERSION } } }
+        ? {
+            server: {
+              ...opts?.server,
+              executable: {
+                ...opts?.server?.executable,
+                type: 'cached-download',
+                version: TESTS_CLI_VERSION,
+              },
+            },
+          }
         : undefined),
     });
   }
@@ -163,7 +172,16 @@ export class TestWorkflowEnvironment extends RealTestWorkflowEnvironment {
     return RealTestWorkflowEnvironment.createTimeSkipping({
       ...opts,
       ...(TESTS_TIME_SKIPPING_SERVER_VERSION
-        ? { server: { executable: { type: 'cached-download', version: TESTS_TIME_SKIPPING_SERVER_VERSION } } }
+        ? {
+            server: {
+              ...opts?.server,
+              executable: {
+                ...opts?.server?.executable,
+                type: 'cached-download',
+                version: TESTS_TIME_SKIPPING_SERVER_VERSION,
+              },
+            },
+          }
         : undefined),
     });
   }
