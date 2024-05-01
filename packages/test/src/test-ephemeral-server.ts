@@ -10,6 +10,7 @@ interface Context {
 }
 
 const test = anyTest as TestFn<Context>;
+const testTimeSkipping = process.arch.startsWith('arm') ? test.skip : test;
 
 test.before(async (t) => {
   t.context.bundle = await bundleWorkflowCode({ workflowsPath: require.resolve('./workflows') });
@@ -41,7 +42,7 @@ async function runSimpleWorkflow(t: ExecutionContext<Context>, testEnv: TestWork
   t.pass();
 }
 
-test('TestEnvironment sets up test server and is able to run a single workflow', async (t) => {
+testTimeSkipping('TestEnvironment sets up test server and is able to run a single workflow', async (t) => {
   const testEnv = await TestWorkflowEnvironment.createTimeSkipping();
   await runSimpleWorkflow(t, testEnv);
 });

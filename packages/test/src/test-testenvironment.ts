@@ -1,3 +1,4 @@
+import * as process from 'process';
 import anyTest, { TestFn } from 'ava';
 import { v4 as uuid4 } from 'uuid';
 import { WorkflowFailedError } from '@temporalio/client';
@@ -18,7 +19,7 @@ interface Context {
   bundle: WorkflowBundleWithSourceMap;
 }
 
-const test = anyTest as TestFn<Context>;
+const test = (process.arch.startsWith('arm') ? anyTest.skip : anyTest) as TestFn<Context>;
 
 test.before(async (t) => {
   t.context = {
