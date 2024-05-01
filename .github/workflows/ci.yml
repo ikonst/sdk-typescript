@@ -197,7 +197,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        node: [14, 16, 18, 20]
         platform: [linux-intel, linux-arm, macos-intel, macos-arm, windows-intel]
         reuse-v8-context: [true, false]
         server: [cli] # FIXME: Add 'cloud'
@@ -292,7 +292,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        node: [14, 16, 18, 20]
         platform: [linux-intel, linux-arm, macos-intel, macos-arm, windows-intel]
         sample: [hello-world, fetch-esm, hello-world-mtls]
         server: [cli, cloud]
