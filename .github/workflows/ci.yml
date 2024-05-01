@@ -488,9 +488,11 @@ jobs:
           target: ${{ matrix.target }}
 
       - name: Install protoc
-        uses: arduino/setup-protoc@v1
+        # arduino/setup-protoc@v3 require Node 20, which doesn't work on Ubuntu 18.04 runners
+        uses: arduino/setup-protoc@v2
         with:
-          version: '3.x'
+          # TODO: Upgrade proto once https://github.com/arduino/setup-protoc/issues/99 is fixed
+          version: '23.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Rust Cargo and Build cache

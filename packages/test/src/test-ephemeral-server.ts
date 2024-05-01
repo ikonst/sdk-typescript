@@ -2,7 +2,7 @@ import anyTest, { ExecutionContext, TestFn } from 'ava';
 import { v4 as uuid4 } from 'uuid';
 import { TestWorkflowEnvironment } from '@temporalio/testing';
 import { bundleWorkflowCode, WorkflowBundle } from '@temporalio/worker';
-import { Worker } from './helpers';
+import { RUN_TIME_SKIPPING_TESTS, Worker } from './helpers';
 
 interface Context {
   bundle: WorkflowBundle;
@@ -10,7 +10,7 @@ interface Context {
 }
 
 const test = anyTest as TestFn<Context>;
-const testTimeSkipping = process.arch.startsWith('arm') ? test.skip : test;
+const testTimeSkipping = RUN_TIME_SKIPPING_TESTS ? test : test.skip;
 
 test.before(async (t) => {
   t.context.bundle = await bundleWorkflowCode({ workflowsPath: require.resolve('./workflows') });

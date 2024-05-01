@@ -12,162 +12,164 @@ import {
   unblockSignal,
   waitOnSignalWithTimeout,
 } from './workflows/testenv-test-workflows';
-import { Worker } from './helpers';
+import { RUN_TIME_SKIPPING_TESTS, Worker } from './helpers';
 
 interface Context {
   testEnv: TestWorkflowEnvironment;
   bundle: WorkflowBundleWithSourceMap;
 }
 
-const test = (process.arch.startsWith('arm') ? anyTest.skip : anyTest) as TestFn<Context>;
+const test = anyTest as TestFn<Context>;
 
-test.before(async (t) => {
-  t.context = {
-    testEnv: await TestWorkflowEnvironment.createTimeSkipping(),
-    bundle: await bundleWorkflowCode({
-      workflowsPath: require.resolve('./workflows/testenv-test-workflows'),
-      workflowInterceptorModules,
-    }),
-  };
-});
-
-test.after.always(async (t) => {
-  await t.context.testEnv?.teardown();
-});
-
-test.serial('TestEnvironment sets up test server and is able to run a Workflow with time skipping', async (t) => {
-  const { client, nativeConnection } = t.context.testEnv;
-  const worker = await Worker.create({
-    connection: nativeConnection,
-    taskQueue: 'test',
-    workflowBundle: t.context.bundle,
-  });
-  await worker.runUntil(
-    client.workflow.execute(sleep, {
-      workflowId: uuid4(),
-      taskQueue: 'test',
-      args: [1_000_000],
-    })
-  );
-  t.pass();
-});
-
-test.serial('TestEnvironment can toggle between normal and skipped time', async (t) => {
-  const { client, nativeConnection } = t.context.testEnv;
-
-  const worker = await Worker.create({
-    connection: nativeConnection,
-    taskQueue: 'test',
-    workflowBundle: t.context.bundle,
+if (RUN_TIME_SKIPPING_TESTS) {
+  test.before(async (t) => {
+    t.context = {
+      testEnv: await TestWorkflowEnvironment.createTimeSkipping(),
+      bundle: await bundleWorkflowCode({
+        workflowsPath: require.resolve('./workflows/testenv-test-workflows'),
+        workflowInterceptorModules,
+      }),
+    };
   });
 
-  await worker.runUntil(async () => {
-    const wfSleepDuration = 1_000_000;
+  test.after.always(async (t) => {
+    await t.context.testEnv?.teardown();
+  });
 
-    const t0 = process.hrtime.bigint();
-    await client.workflow.execute(sleep, {
-      workflowId: uuid4(),
+  test.serial('TestEnvironment sets up test server and is able to run a Workflow with time skipping', async (t) => {
+    const { client, nativeConnection } = t.context.testEnv;
+    const worker = await Worker.create({
+      connection: nativeConnection,
       taskQueue: 'test',
-      args: [wfSleepDuration],
+      workflowBundle: t.context.bundle,
     });
-    const realDuration = Number((process.hrtime.bigint() - t0) / 1_000_000n);
-    if (wfSleepDuration < realDuration) {
-      t.fail(`Workflow execution took ${realDuration}, sleep duration was: ${wfSleepDuration}`);
-    }
-  });
-  t.pass();
-});
-
-test.serial('TestEnvironment sleep can be used to delay activity completion', async (t) => {
-  const { client, nativeConnection, sleep } = t.context.testEnv;
-
-  const worker = await Worker.create({
-    connection: nativeConnection,
-    taskQueue: 'test',
-    activities: {
-      async sleep(duration: number) {
-        await sleep(duration);
-      },
-    },
-    workflowBundle: t.context.bundle,
-  });
-
-  const run = async (expectedWinner: 'timer' | 'activity') => {
-    const winner = await client.workflow.execute(raceActivityAndTimer, {
-      workflowId: uuid4(),
-      taskQueue: 'test',
-      args: [expectedWinner],
-    });
-    t.is(winner, expectedWinner);
-  };
-  await worker.runUntil(async () => {
-    await run('activity');
-    await run('timer');
-  });
-  t.pass();
-});
-
-test.serial('TestEnvironment sleep can be used to delay sending a signal', async (t) => {
-  const { client, nativeConnection, sleep } = t.context.testEnv;
-
-  const worker = await Worker.create({
-    connection: nativeConnection,
-    taskQueue: 'test',
-    workflowBundle: t.context.bundle,
-  });
-
-  await worker.runUntil(async () => {
-    const handle = await client.workflow.start(waitOnSignalWithTimeout, {
-      workflowId: uuid4(),
-      taskQueue: 'test',
-    });
-    await sleep(1_000_000); // Time is skipped
-    await handle.signal(unblockSignal);
-    await handle.result(); // Time is skipped
-  });
-  t.pass();
-});
-
-test.serial('Workflow code can run assertions', async (t) => {
-  const { client, nativeConnection } = t.context.testEnv;
-
-  const worker = await Worker.create({
-    connection: nativeConnection,
-    taskQueue: 'test',
-    workflowBundle: t.context.bundle,
-  });
-
-  const err: WorkflowFailedError | undefined = await t.throwsAsync(
-    worker.runUntil(
-      client.workflow.execute(assertFromWorkflow, {
+    await worker.runUntil(
+      client.workflow.execute(sleep, {
         workflowId: uuid4(),
         taskQueue: 'test',
-        args: [6],
+        args: [1_000_000],
       })
-    ),
-    { instanceOf: WorkflowFailedError }
-  );
-  t.is(err?.cause?.message, 'Expected values to be strictly equal:\n\n6 !== 7\n');
-});
-
-test.serial('ABNADONED child timer can be fast-forwarded', async (t) => {
-  const { client, nativeConnection } = t.context.testEnv;
-
-  const worker = await Worker.create({
-    connection: nativeConnection,
-    taskQueue: 'test',
-    workflowBundle: t.context.bundle,
+    );
+    t.pass();
   });
 
-  const childWorkflowId = uuid4();
-  await worker.runUntil(async () => {
-    await client.workflow.execute(asyncChildStarter, {
-      workflowId: uuid4(),
+  test.serial('TestEnvironment can toggle between normal and skipped time', async (t) => {
+    const { client, nativeConnection } = t.context.testEnv;
+
+    const worker = await Worker.create({
+      connection: nativeConnection,
       taskQueue: 'test',
-      args: [childWorkflowId],
+      workflowBundle: t.context.bundle,
     });
-    await client.workflow.getHandle(childWorkflowId).result();
+
+    await worker.runUntil(async () => {
+      const wfSleepDuration = 1_000_000;
+
+      const t0 = process.hrtime.bigint();
+      await client.workflow.execute(sleep, {
+        workflowId: uuid4(),
+        taskQueue: 'test',
+        args: [wfSleepDuration],
+      });
+      const realDuration = Number((process.hrtime.bigint() - t0) / 1_000_000n);
+      if (wfSleepDuration < realDuration) {
+        t.fail(`Workflow execution took ${realDuration}, sleep duration was: ${wfSleepDuration}`);
+      }
+    });
+    t.pass();
   });
 
-  t.pass();
-});
+  test.serial('TestEnvironment sleep can be used to delay activity completion', async (t) => {
+    const { client, nativeConnection, sleep } = t.context.testEnv;
+
+    const worker = await Worker.create({
+      connection: nativeConnection,
+      taskQueue: 'test',
+      activities: {
+        async sleep(duration: number) {
+          await sleep(duration);
+        },
+      },
+      workflowBundle: t.context.bundle,
+    });
+
+    const run = async (expectedWinner: 'timer' | 'activity') => {
+      const winner = await client.workflow.execute(raceActivityAndTimer, {
+        workflowId: uuid4(),
+        taskQueue: 'test',
+        args: [expectedWinner],
+      });
+      t.is(winner, expectedWinner);
+    };
+    await worker.runUntil(async () => {
+      await run('activity');
+      await run('timer');
+    });
+    t.pass();
+  });
+
+  test.serial('TestEnvironment sleep can be used to delay sending a signal', async (t) => {
+    const { client, nativeConnection, sleep } = t.context.testEnv;
+
+    const worker = await Worker.create({
+      connection: nativeConnection,
+      taskQueue: 'test',
+      workflowBundle: t.context.bundle,
+    });
+
+    await worker.runUntil(async () => {
+      const handle = await client.workflow.start(waitOnSignalWithTimeout, {
+        workflowId: uuid4(),
+        taskQueue: 'test',
+      });
+      await sleep(1_000_000); // Time is skipped
+      await handle.signal(unblockSignal);
+      await handle.result(); // Time is skipped
+    });
+    t.pass();
+  });
+
+  test.serial('Workflow code can run assertions', async (t) => {
+    const { client, nativeConnection } = t.context.testEnv;
+
+    const worker = await Worker.create({
+      connection: nativeConnection,
+      taskQueue: 'test',
+      workflowBundle: t.context.bundle,
+    });
+
+    const err: WorkflowFailedError | undefined = await t.throwsAsync(
+      worker.runUntil(
+        client.workflow.execute(assertFromWorkflow, {
+          workflowId: uuid4(),
+          taskQueue: 'test',
+          args: [6],
+        })
+      ),
+      { instanceOf: WorkflowFailedError }
+    );
+    t.is(err?.cause?.message, 'Expected values to be strictly equal:\n\n6 !== 7\n');
+  });
+
+  test.serial('ABNADONED child timer can be fast-forwarded', async (t) => {
+    const { client, nativeConnection } = t.context.testEnv;
+
+    const worker = await Worker.create({
+      connection: nativeConnection,
+      taskQueue: 'test',
+      workflowBundle: t.context.bundle,
+    });
+
+    const childWorkflowId = uuid4();
+    await worker.runUntil(async () => {
+      await client.workflow.execute(asyncChildStarter, {
+        workflowId: uuid4(),
+        taskQueue: 'test',
+        args: [childWorkflowId],
+      });
+      await client.workflow.getHandle(childWorkflowId).result();
+    });
+
+    t.pass();
+  });
+}

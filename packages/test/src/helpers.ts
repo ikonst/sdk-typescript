@@ -27,6 +27,8 @@ function isSet(env: string | undefined, def: boolean): boolean {
 
 export const RUN_INTEGRATION_TESTS = inWorkflowContext() || isSet(process.env.RUN_INTEGRATION_TESTS, false);
 export const REUSE_V8_CONTEXT = inWorkflowContext() || isSet(process.env.REUSE_V8_CONTEXT, true);
+export const RUN_TIME_SKIPPING_TESTS =
+  inWorkflowContext() || !(process.platform === 'linux' && process.arch === 'arm64');
 
 export async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
