@@ -2,7 +2,7 @@ import * as process from 'process';
 import anyTest, { TestFn } from 'ava';
 import { v4 as uuid4 } from 'uuid';
 import { WorkflowFailedError } from '@temporalio/client';
-import { TestWorkflowEnvironment, workflowInterceptorModules } from '@temporalio/testing';
+import { workflowInterceptorModules } from '@temporalio/testing';
 import { bundleWorkflowCode, WorkflowBundleWithSourceMap } from '@temporalio/worker';
 import {
   assertFromWorkflow,
@@ -12,7 +12,7 @@ import {
   unblockSignal,
   waitOnSignalWithTimeout,
 } from './workflows/testenv-test-workflows';
-import { RUN_TIME_SKIPPING_TESTS, Worker } from './helpers';
+import { RUN_TIME_SKIPPING_TESTS, Worker, TestWorkflowEnvironment } from './helpers';
 
 interface Context {
   testEnv: TestWorkflowEnvironment;

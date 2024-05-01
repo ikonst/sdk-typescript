@@ -11,6 +11,11 @@ import { Worker as RealWorker, WorkerOptions } from '@temporalio/worker';
 import * as worker from '@temporalio/worker';
 import { Client, Connection } from '@temporalio/client';
 import * as iface from '@temporalio/proto';
+import {
+  LocalTestWorkflowEnvironmentOptions,
+  TestWorkflowEnvironment as RealTestWorkflowEnvironment,
+  TimeSkippingTestWorkflowEnvironmentOptions,
+} from '@temporalio/testing';
 
 export function u8(s: string): Uint8Array {
   // TextEncoder requires lib "dom"
@@ -29,6 +34,11 @@ export const RUN_INTEGRATION_TESTS = inWorkflowContext() || isSet(process.env.RU
 export const REUSE_V8_CONTEXT = inWorkflowContext() || isSet(process.env.REUSE_V8_CONTEXT, true);
 export const RUN_TIME_SKIPPING_TESTS =
   inWorkflowContext() || !(process.platform === 'linux' && process.arch === 'arm64');
+
+export const TESTS_CLI_VERSION = inWorkflowContext() ? '' : process.env.TESTS_CLI_VERSION;
+export const TESTS_TIME_SKIPPING_SERVER_VERSION = inWorkflowContext()
+  ? ''
+  : process.env.TESTS_TIME_SKIPPING_SERVER_VERSION;
 
 export async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -119,16 +129,43 @@ export class ByteSkewerPayloadCodec implements PayloadCodec {
   }
 }
 
-// Hack around Worker not being available in workflow context
+// Hack around Worker and TestWorkflowEnvironment not being available in workflow context
 if (inWorkflowContext()) {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   worker.Worker = class {}; // eslint-disable-line import/namespace
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  RealTestWorkflowEnvironment = class {}; // eslint-disable-line import/namespace
 }
 
 export class Worker extends worker.Worker {
   static async create(options: WorkerOptions): Promise<worker.Worker> {
     return RealWorker.create({ ...options, reuseV8Context: REUSE_V8_CONTEXT });
+  }
+}
+
+// A custom version of TestWorkflowEnvironment for our own testing use, that
+// allow specifying the version of the CLI and Time Skipping Server binaries to
+// through environment variables.
+export class TestWorkflowEnvironment extends RealTestWorkflowEnvironment {
+  static async createLocal(opts?: LocalTestWorkflowEnvironmentOptions): Promise<TestWorkflowEnvironment> {
+    return RealTestWorkflowEnvironment.createLocal({
+      ...opts,
+      ...(TESTS_CLI_VERSION
+        ? { server: { executable: { type: 'cached-download', version: TESTS_CLI_VERSION } } }
+        : undefined),
+    });
+  }
+
+  static async createTimeSkipping(opts?: TimeSkippingTestWorkflowEnvironmentOptions): Promise<TestWorkflowEnvironment> {
+    return RealTestWorkflowEnvironment.createTimeSkipping({
+      ...opts,
+      ...(TESTS_TIME_SKIPPING_SERVER_VERSION
+        ? { server: { executable: { type: 'cached-download', version: TESTS_TIME_SKIPPING_SERVER_VERSION } } }
+        : undefined),
+    });
   }
 }
 

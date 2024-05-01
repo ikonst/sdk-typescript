@@ -8,7 +8,6 @@ import {
 } from '@temporalio/client';
 import {
   LocalTestWorkflowEnvironmentOptions,
-  TestWorkflowEnvironment,
   workflowInterceptorModules as defaultWorkflowInterceptorModules,
 } from '@temporalio/testing';
 import {
@@ -21,7 +20,13 @@ import {
 } from '@temporalio/worker';
 import * as workflow from '@temporalio/workflow';
 import { ConnectionInjectorInterceptor } from './activities/interceptors';
-import { Worker, test as anyTest, bundlerOptions, registerDefaultCustomSearchAttributes } from './helpers';
+import {
+  Worker,
+  TestWorkflowEnvironment,
+  test as anyTest,
+  bundlerOptions,
+  registerDefaultCustomSearchAttributes,
+} from './helpers';
 
 export interface Context {
   env: TestWorkflowEnvironment;
@@ -52,6 +57,10 @@ export function makeTestFunction(opts: {
     const env = await TestWorkflowEnvironment.createLocal({
       ...opts.workflowEnvironmentOpts,
       server: {
+        executable: {
+          type: 'cached-download',
+          version: 'v0.12.0',
+        },
         ...opts.workflowEnvironmentOpts?.server,
         extraArgs: [
           ...defaultDynamicConfigOptions.flatMap((opt) => ['--dynamic-config-value', opt]),

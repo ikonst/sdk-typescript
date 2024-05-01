@@ -1,8 +1,7 @@
 import anyTest, { ExecutionContext, TestFn } from 'ava';
 import { v4 as uuid4 } from 'uuid';
-import { TestWorkflowEnvironment } from '@temporalio/testing';
 import { bundleWorkflowCode, WorkflowBundle } from '@temporalio/worker';
-import { RUN_TIME_SKIPPING_TESTS, Worker } from './helpers';
+import { RUN_TIME_SKIPPING_TESTS, Worker, TestWorkflowEnvironment } from './helpers';
 
 interface Context {
   bundle: WorkflowBundle;
